@@ -1,48 +1,86 @@
+import os
 import json
 from Spark_Initializer import SparkInitializer
+from pyspark.sql import DataFrame
 from py4j.protocol import Py4JJavaError
 
-def load_data(load_json):
+
+def load_data_mysql(df: DataFrame, config) -> None:
+    # Extract extracturation parameters
+    mysql_host = config["mysql_host"]
+    mysql_port = config["mysql_port"]
+    driver = config["driver"]
+    mysql_database = config["mysql_database"]
+    mysql_user = config["mysql_user"]
+    mysql_password = config["mysql_password"]
+    database_table = config["target_table"]
+    parquet_folder_path = config["parquet_folder_path"]
+
+    # JDBC URL for MySQL connection
+    mysql_url = f"jdbc:mysql://{mysql_host}:{mysql_port}/{mysql_database}"
+
+    # Extract load parameters
+    jdbc_properties = {
+        "url": mysql_url,
+        "driver": driver,
+        "user": mysql_user,
+        "password": mysql_password,
+        "dbtable": database_table,
+    }
+
+    # Write the data to the target table using JDBC
+    # (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+
+
+def load_to_snowflake(df: DataFrame, config) -> None:
+
+    sf_options = {
+        "sfURL": config["sf_url"],
+        "sfUser": config["sf_user"],
+        "sfPassword": config["sf_password"],
+        "sfDatabase": config["sf_database"],
+        "sfSchema": config["sf_schema"],
+        "sfWarehouse": config["sf_warehouse"],
+    }
+
+    write_mode = config["write_mode"]
+    parquet_folder_path = config["parquet_folder_path"]
+
+    """(
+        df.write.format("net.snowflake.spark.spark.snowflake")
+        .options(**sf_options)
+        .option("dbtable", config["target_table"])
+        .mode(config.get("write_mode", write_mode))
+        .save()
+    )"""
+
+    print(f"Successfully loaded data into Snowflake table: {config['target_table']}")
+
+
+def execute_load(config_json):
+
+    target = os.getenv("LOAD_TARGET", "mysql").lower()
+
     try:
-        # Read the JSON configuration file
-        with open(load_json) as file:
-            load = json.load(file)
-
-        # Extract extracturation parameters
-        mysql_host = load["mysql_host"]
-        mysql_port = load["mysql_port"]
-        driver = load["driver"]
-        mysql_database = load["mysql_database"]
-        mysql_user = load["mysql_user"]
-        mysql_password = load["mysql_password"]
-        database_table=load['target_table']
-        parquet_folder_path = load["parquet_folder_path"]
-
-
-        # JDBC URL for MySQL connection
-        mysql_url = f"jdbc:mysql://{mysql_host}:{mysql_port}/{mysql_database}"
-
-        # Extract load parameters
-        jdbc_properties = {
-            "url":mysql_url,
-            "driver":driver,
-            "user": mysql_user,
-            "password": mysql_password,
-            "dbtable":database_table
-        }
 
         # Create a SparkSession
-        spark = SparkInitializer.get_spark()
+        # spark = SparkInitializer.get_spark()
 
         # Read the data from the Parquet files
-        final_df = spark.read.parquet(parquet_folder_path)
+        # df = spark.read.parquet(parquet_folder_path)
+        df = []
+        # Read the JSON configuration file
+        with open(config_json) as file:
+            config = json.load(file)
 
-        # Write the data to the target table using JDBC
-        final_df.write \
-            .format("jdbc") \
-            .options(**jdbc_properties) \
-            .mode("append") \
-            .save()
+        if target == "mysql":
+
+            db_config = config["mysql_config"]
+            load_data_mysql(df, db_config)
+        elif target == "snowflake":
+
+            sf_config = config["snowflake_config"]
+            load_to_snowflake(df, sf_config)
 
     except FileNotFoundError as fe:
         raise Exception("Load file not found") from fe
@@ -51,9 +89,7 @@ def load_data(load_json):
     except Py4JJavaError as pje:
         raise Exception("Py4J Java error occurred") from pje
 
-    finally:
-        spark.stop()
-        
+
 # Path to the JSON load configuration file
 load_json = "Json_Folder/load.json"
-load_data(load_json)
+execute_load(load_json)

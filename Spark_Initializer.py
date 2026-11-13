@@ -1,17 +1,23 @@
 from pyspark.sql import SparkSession
 
+
 class SparkInitializer:
     _spark = None
 
     @staticmethod
-    def get_spark():
+    def get_spark(app: str = ""):
+        if not app or not app.strip():
+            app_name = "ETL_Pyspark"
+        else:
+            app_name = app
+
         if SparkInitializer._spark is None:
             try:
                 SparkInitializer._spark = (
-                    SparkSession
-                    .builder
-                    .appName("ETL_Pyspark")
-                    .config("spark.driver.extraClassPath", "mysql-connector-java-8.0.13.jar")
+                    SparkSession.builder.appName(app_name)
+                    .config(
+                        "spark.driver.extraClassPath", "mysql-connector-java-8.0.13.jar"
+                    )
                     .getOrCreate()
                 )
             except Exception as e:

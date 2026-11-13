@@ -1,11 +1,23 @@
-{
-    "mysql_host": "localhost",
-    "mysql_port": "3306",
-    "driver": "com.mysql.cj.jdbc.Driver",
-    "mysql_database": "final",
-    "mysql_user": "root",
-    "mysql_password": "root",
-    "parquet_folder_path": "transform/final.parquet",
-    "target_table": "details"
+  {
+    "mysql_config": {
+      "mysql_host": "localhost",
+      "mysql_port": "3306",
+      "driver": "com.mysql.cj.jdbc.Driver",
+      "mysql_database": "final",
+      "mysql_user": "root",
+      "mysql_password": "root",
+      "parquet_folder_path": "transform/final.parquet",
+      "target_table": "details"
+    },
+    "snowflake_config": {
+      "sf_url": "<account>.snowflakecomputing.com",
+      "sf_user": "<username>",
+      "sf_password": "<password>",
+      "sf_database": "<DB>",
+      "sf_schema": "<SCHEMA>",
+      "sf_warehouse": "<WAREHOUSE>",
+      "parquet_folder_path": "transform/final.parquet",
+      "write_mode": "overwrite",
+      "target_table": "details"
+    }
   }
-  

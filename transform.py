@@ -1,7 +1,5 @@
 import json
-
 from pyspark.sql import functions as F
-
 from Spark_Initializer import SparkInitializer
 
 
@@ -10,9 +8,11 @@ def change_date_format(df, source_column, target_format):
         raise Exception("Error occurred while performing change_date_format operation")
     formatted_df = df.select(
         *[
-            F.date_format(col, target_format).alias(source_column)
-            if col == source_column
-            else col
+            (
+                F.date_format(col, target_format).alias(source_column)
+                if col == source_column
+                else col
+            )
             for col in df.columns
         ]
     )
@@ -61,6 +61,60 @@ def join_tables(df1, df2, source_column, join_type):
         )
     joined_df = df1.join(df2, source_column, join_type)
     return joined_df
+
+
+def filter_rows(df1, expr):
+    try:
+        return df1.filter(expr)
+    except Exception as e:
+        raise Exception(
+            f"Error occurred while performing filter rows operation: {str(e)}"
+        )
+
+
+def calculate_tenure(df, start_date_column, target_column):
+    if start_date_column not in df.columns:
+        raise ValueError(
+            f"{start_date_column} must be a valid column present in the DataFrame"
+        )
+    try:
+        return df.withColumn(
+            target_column,
+            F.floor(F.datediff(F.current_date(), F.col(start_date_column)) / 365.25),
+        )
+    except Exception as e:
+        raise Exception(
+            f"Error occurred while performing calculate_tenure operation: {str(e)}"
+        )
+
+
+def fill_missing_values(df1, mapping_dict):
+    try:
+        return df1.fillna(mapping_dict)
+    except Exception as e:
+        raise Exception(
+            f"Error occurred while performing filling missing values operation: {str(e)}"
+        )
+
+
+def normalize_strings(df1, columns, case_type):
+    if not all(column in df1.columns for column in columns):
+        raise ValueError("Valid column to be present in dataframe for transformation")
+    try:
+        output_df = df1
+        for column in columns:
+            if case_type == "upper":
+                output_df = output_df.withColumn(column, F.upper(F.col(column)))
+            elif case_type == "lower":
+                output_df = output_df.withColumn(column, F.lower(F.col(column)))
+            else:
+                # If case_type not defined return the original value in df1
+                return df1
+        return output_df
+    except Exception as e:
+        raise Exception(
+            f"Error occurred while performing normalize strings operation: {str(e)}"
+        )
 
 
 # Initialize Spark
@@ -130,6 +184,25 @@ try:
                     employees_df, dept_emp_df, source_column, join_type
                 )
 
+            elif operation == "calculate_tenure":
+                start_date_column = transformation["start_date_column"]
+                target_column = transformation["target_column"]
+                employees_df = calculate_tenure(
+                    employees_df, start_date_column, target_column
+                )
+
+            elif operation == "filter_rows":
+                condition_expr = transformation["condition_expr"]
+                employees_df = filter_rows(employees_df, condition_expr)
+
+            elif operation == "fill_missing_values":
+                mapping_dict = transformation["mapping_dict"]
+                employees_df = fill_missing_values(employees_df, mapping_dict)
+
+            elif operation == "normalize_strings":
+                columns = transformation["source_columns"]
+                case_type = transformation.get("case_type", "upper")
+                employees_df = normalize_strings(employees_df, columns, case_type)
             else:
                 raise Exception(f"Unknown transformation is used: {operation}")
 
