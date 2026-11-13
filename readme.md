@@ -2,7 +2,7 @@
 
 ## Overview
 
-- This project is a ETL (Extract, Transform, Load) project that demonstrates the process of extracting data from an employee database using Apache Spark, performing various transformations, and finally loading the processed data into a MySQL database. The entire process is implemented in Python, and JSON is used for configuration to enhance modularity and maintainability.
+- This project is a ETL (Extract, Transform, Load) project that demonstrates the process of extracting data from an employee database using Apache Spark, performing various transformations, and finally loading the processed data into a MySQL database or Snowflake based on config json provided. The entire process is implemented in Python, and JSON is used for configuration to enhance modularity and maintainability.
 
 ## Table of Contents
 
@@ -60,6 +60,10 @@ The Spark ETL process involves the following transformation steps on the extract
 - Column Concatenation: Combine multiple columns to create new composite columns.
 - Column Dropping: Remove unnecessary columns that are not required in the final dataset.
 - Table Join: Combine data from multiple tables to create a unified dataset.
+- Calculate Tenure : Function to calculate tenure and set the value in new column.
+- Filter Rows: Perform filter operation in dataset with condition expression.
+- Fill Missing Values: Fill-in null or empty values with defined data string.
+- Normalize Strings: Performs string normalization.
 
 ## Error Handling
 
@@ -71,6 +75,7 @@ The project implements robust error handling using Spark's fault-tolerant featur
 - Apache Spark: Distributed data processing framework used for scalable ETL operations.
 - JSON: Configuration files are written in JSON format for easy customization.
 - MySQL: The final processed data is loaded into a MySQL database.
+- Snowflake : Option to load the final processed data is loaded into a Snowflake.
 - Parquet: The extracted data is saved in Parquet file format, which is optimized for performance and space efficiency.
 
 ## Contributing

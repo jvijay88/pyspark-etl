@@ -84,7 +84,7 @@ def calculate_tenure(df, start_date_column, target_column):
         )
     except Exception as e:
         raise Exception(
-            f"Error occurred while performing calculate_tenure operation: {str(e)}"
+            f"Error occurred while performing calculate tenure operation: {str(e)}"
         )
 
 
