@@ -29,7 +29,7 @@ def load_data_mysql(df: DataFrame, config) -> None:
     }
 
     # Write the data to the target table using JDBC
-    # (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+    (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
 
 
 def load_to_snowflake(df: DataFrame, config) -> None:
@@ -63,23 +63,23 @@ def execute_load(config_json):
 
     try:
 
-        # Create a SparkSession
-        # spark = SparkInitializer.get_spark()
-
-        # Read the data from the Parquet files
-        # df = spark.read.parquet(parquet_folder_path)
-        df = []
         # Read the JSON configuration file
         with open(config_json) as file:
             config = json.load(file)
 
+        # Create a SparkSession
+        spark = SparkInitializer.get_spark()
+
         if target == "mysql":
 
             db_config = config["mysql_config"]
+            df = spark.read.parquet(db_config["parquet_folder_path"])
             load_data_mysql(df, db_config)
+
         elif target == "snowflake":
 
             sf_config = config["snowflake_config"]
+            df = spark.read.parquet(sf_config["parquet_folder_path"])
             load_to_snowflake(df, sf_config)
 
     except FileNotFoundError as fe:
@@ -91,5 +91,5 @@ def execute_load(config_json):
 
 
 # Path to the JSON load configuration file
-load_json = "Json_Folder/load.json"
+load_json = "Json_Folder/config.json"
 execute_load(load_json)
