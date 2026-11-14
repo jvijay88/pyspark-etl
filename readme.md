@@ -1,4 +1,4 @@
-![cover_image](https://github.com/jvijay88/pyspark-etl/blob/master/config/github-cover.png)
+![cover_image](https://github.com/jvijay88/pyspark-etl/blob/master/assets/github-cover.png)
 
 ## Overview
 
