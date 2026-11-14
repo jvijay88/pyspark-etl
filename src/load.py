@@ -28,10 +28,10 @@ def load_data_mysql(df: DataFrame, config) -> None:
     }
 
     # Write the data to the target table using JDBC
-    df.show()
-    #(df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+    (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
 
     print(f"Successfully loaded data into Mysql table: {config['target_table']}")
+
 
 def load_to_postgres(df: DataFrame, config) -> None:
     # Extract extracturation parameters
@@ -56,8 +56,7 @@ def load_to_postgres(df: DataFrame, config) -> None:
     }
 
     # Write the data to the target table using JDBC
-    df.show()
-    #(df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+    (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
 
     print(f"Successfully loaded data into Postgres table: {config['target_table']}")
 
@@ -74,15 +73,15 @@ def load_to_snowflake(df: DataFrame, config) -> None:
     }
 
     write_mode = config["write_mode"]
-    df.show()
-    #write data to snowflake
-    """(
+
+    # write data to snowflake
+    (
         df.write.format("net.snowflake.spark.spark.snowflake")
         .options(**sf_options)
         .option("dbtable", config["target_table"])
         .mode(config.get("write_mode", write_mode))
         .save()
-    )"""
+    )
 
     print(f"Successfully loaded data into Snowflake table: {config['target_table']}")
 
@@ -92,10 +91,11 @@ def load_to_s3(df: DataFrame, config) -> None:
     s3_path = config["s3_parquet_path"]
     write_mode = config["write_mode"]
 
-    #write data to AWS s3
-    #(df.write.mode(write_mode).parquet(s3_path))
+    # write data to AWS s3
+    (df.write.mode(write_mode).parquet(s3_path))
 
     print(f"Successfully loaded data into S3: {s3_path}")
+
 
 def load_to_s3_iceberg(df: DataFrame, config) -> None:
 
@@ -109,8 +109,9 @@ def load_to_s3_iceberg(df: DataFrame, config) -> None:
 
     # Write data to Iceberg table in AWS s3
     (df.write.format("iceberg").mode(write_mode).save(table_identifier))
-
-
+        
+    print(f"Successfully loaded data into Iceberg table: {config['table_name']}")
+    
 def execute_load(config_json):
 
     target = os.getenv("LOAD_TARGET", "mysql").lower()
@@ -122,9 +123,23 @@ def execute_load(config_json):
             config = json.load(file)
 
         # Create a SparkSession
-        spark = SparkInitializer.get_spark()
+        if target == "s3_iceberg":
+            # Get Iceberg Config
+            iceberg_s3_config = config["iceberg_s3_config"]
+            iceberg_conf = SparkInitializer.get_iceberg_config(
+                catalog_name=iceberg_s3_config["catalog_name"],
+                s3_bucket=iceberg_s3_config["s3_bucket_name"],
+            )
 
-        #Load execution flow based on input conditions
+            # Initialize spark with Iceberg configruation
+            spark = SparkInitializer.get_spark(
+                app="Iceberg Data Load", iceberg_config=iceberg_conf
+            )
+
+        else:
+            spark = SparkInitializer.get_spark()
+
+        # Load execution flow based on input conditions
         if target == "mysql":
 
             db_config = config["mysql_config"]
@@ -152,19 +167,6 @@ def execute_load(config_json):
         elif target == "s3_iceberg":
 
             iceberg_s3_config = config["iceberg_s3_config"]
-
-            #Get Iceberg Config
-            iceberg_conf = SparkInitializer.get_iceberg_config (
-                catlog_name = iceberg_s3_config["catlog_name"],
-                s3_bucket = iceberg_s3_config["s3_bucket_name"]
-            )
-
-            #Initialize spark with Iceberg configruation
-            spark = SparkInitializer.get_spark(
-                app="Iceberg Data Load",
-                iceberg_config=iceberg_conf
-            )
-
             df = spark.read.parquet(iceberg_s3_config["parquet_folder_path"])
             load_to_s3_iceberg(df, iceberg_s3_config)
 

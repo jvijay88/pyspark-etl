@@ -54,9 +54,7 @@ class SparkInitializer:
                 spark_conf = SparkConf().setAll(conf_list)
                 SparkInitializer._spark = (
                     SparkSession.builder.appName(app_name)
-                    .config(
-                        "spark.driver.extraClassPath", "mysql-connector-java-8.0.13.jar"
-                    )
+                    .config(conf=spark_conf)
                     .getOrCreate()
                 )
 

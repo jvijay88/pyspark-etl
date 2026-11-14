@@ -30,7 +30,7 @@
       "write_mode": "overwrite",
       "target_table": "details"
     },
-    "s3_parquet_config": {
+    "s3_config": {
       "s3_parquet_path": "s3a://my-s3-bucket/output/employees_parquet/",
       "parquet_folder_path": "data/transform/final.parquet",
       "write_mode": "overwrite"
