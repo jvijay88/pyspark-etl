@@ -121,7 +121,7 @@ def execute_load(config_json):
         # Read the JSON configuration file
         with open(config_json) as file:
             config = json.load(file)
-        print(config)
+        
         # Create a SparkSession
         if target == "s3_iceberg":
             # Get Iceberg Config
