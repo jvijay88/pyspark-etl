@@ -127,21 +127,21 @@ parquet_options = {"header": "true", "inferSchema": "true"}
 employees_df = (
     spark.read.format("parquet")
     .options(**parquet_options)
-    .load("extract/employees.parquet")
+    .load("data/extract/employees.parquet")
 )
 
 # Read the 'dept_emp.parquet' file into a DataFrame
 dept_emp_df = (
     spark.read.format("parquet")
     .options(**parquet_options)
-    .load("extract/dept_emp.parquet")
+    .load("data/extract/dept_emp.parquet")
 )
 
 # Cache the larger DataFrame if it will be reused multiple times
 employees_df.cache()
 
 # Load the transformation configuration from JSON file
-json_path = "Json_Folder/transformation.json"
+json_path = "config/transformation.json"
 try:
     with open(json_path) as ConfigurationFile:
         config = json.load(ConfigurationFile)
@@ -224,6 +224,6 @@ except json.JSONDecodeError as je:
 
 # Save the DataFrame as a parquet file
 try:
-    employees_df.write.mode("overwrite").parquet("transform/final.parquet")
+    employees_df.write.mode("overwrite").parquet("data/transform/final.parquet")
 except Exception as e:
     raise Exception("Error writing Parquet file") from e

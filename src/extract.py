@@ -43,8 +43,10 @@ def extract_tables(extract_json):
 
                 # Write the extracted data to Parquet files
                 parquet_file_path = f"{parquet_folder_path}/{table_name}.parquet"
-                df.write.mode("overwrite").format("parquet").option("compression", "snappy").save(parquet_file_path)
-
+                df.write.mode("overwrite")\
+                    .format("parquet")\
+                    .option("compression", "snappy")\
+                    .save(parquet_file_path)
 
             except ParseException as pe:
                 raise Exception("JDBC URL parsing error") from pe

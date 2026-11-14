@@ -14,7 +14,6 @@ def load_data_mysql(df: DataFrame, config) -> None:
     mysql_user = config["mysql_user"]
     mysql_password = config["mysql_password"]
     database_table = config["target_table"]
-    parquet_folder_path = config["parquet_folder_path"]
 
     # JDBC URL for MySQL connection
     mysql_url = f"jdbc:mysql://{mysql_host}:{mysql_port}/{mysql_database}"
@@ -29,7 +28,38 @@ def load_data_mysql(df: DataFrame, config) -> None:
     }
 
     # Write the data to the target table using JDBC
-    (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+    df.show()
+    #(df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+
+    print(f"Successfully loaded data into Mysql table: {config['target_table']}")
+
+def load_to_postgres(df: DataFrame, config) -> None:
+    # Extract extracturation parameters
+    pg_host = config["pg_host"]
+    pg_port = config["pg_port"]
+    driver = config["driver"]
+    pg_database = config["pg_database"]
+    pg_user = config["pg_user"]
+    pg_password = config["pg_password"]
+    database_table = config["target_table"]
+
+    # JDBC URL for PostGres connection
+    mysql_url = f"jdbc:postgresql://{pg_host}:{pg_port}/{pg_database}"
+
+    # Extract load parameters
+    jdbc_properties = {
+        "url": mysql_url,
+        "driver": driver,
+        "user": pg_user,
+        "password": pg_password,
+        "dbtable": database_table,
+    }
+
+    # Write the data to the target table using JDBC
+    df.show()
+    #(df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+
+    print(f"Successfully loaded data into Postgres table: {config['target_table']}")
 
 
 def load_to_snowflake(df: DataFrame, config) -> None:
@@ -44,8 +74,8 @@ def load_to_snowflake(df: DataFrame, config) -> None:
     }
 
     write_mode = config["write_mode"]
-    parquet_folder_path = config["parquet_folder_path"]
-
+    df.show()
+    #write data to snowflake
     """(
         df.write.format("net.snowflake.spark.spark.snowflake")
         .options(**sf_options)
@@ -55,6 +85,30 @@ def load_to_snowflake(df: DataFrame, config) -> None:
     )"""
 
     print(f"Successfully loaded data into Snowflake table: {config['target_table']}")
+
+
+def load_to_s3(df: DataFrame, config) -> None:
+
+    s3_path = config["s3_parquet_path"]
+    write_mode = config["write_mode"]
+
+    #write data to AWS s3
+    #(df.write.mode(write_mode).parquet(s3_path))
+
+    print(f"Successfully loaded data into S3: {s3_path}")
+
+def load_to_s3_iceberg(df: DataFrame, config) -> None:
+
+    catalog_name = config["catalog_name"]
+    database_name = config["database_name"]
+    table_name = config["table_name"]
+    write_mode = config["write_mode"]
+
+    # Iceberg Table identifier
+    table_identifier = f"{catalog_name}.{database_name}.{table_name}"
+
+    # Write data to Iceberg table in AWS s3
+    (df.write.format("iceberg").mode(write_mode).save(table_identifier))
 
 
 def execute_load(config_json):
@@ -70,17 +124,49 @@ def execute_load(config_json):
         # Create a SparkSession
         spark = SparkInitializer.get_spark()
 
+        #Load execution flow based on input conditions
         if target == "mysql":
 
             db_config = config["mysql_config"]
             df = spark.read.parquet(db_config["parquet_folder_path"])
             load_data_mysql(df, db_config)
 
+        elif target == "postgres":
+
+            db_config = config["postgres_config"]
+            df = spark.read.parquet(db_config["parquet_folder_path"])
+            load_to_postgres(df, db_config)
+
         elif target == "snowflake":
 
             sf_config = config["snowflake_config"]
             df = spark.read.parquet(sf_config["parquet_folder_path"])
             load_to_snowflake(df, sf_config)
+
+        elif target == "s3":
+
+            s3_config = config["s3_config"]
+            df = spark.read.parquet(s3_config["parquet_folder_path"])
+            load_to_s3(df, s3_config)
+
+        elif target == "s3_iceberg":
+
+            iceberg_s3_config = config["iceberg_s3_config"]
+
+            #Get Iceberg Config
+            iceberg_conf = SparkInitializer.get_iceberg_config (
+                catlog_name = iceberg_s3_config["catlog_name"],
+                s3_bucket = iceberg_s3_config["s3_bucket_name"]
+            )
+
+            #Initialize spark with Iceberg configruation
+            spark = SparkInitializer.get_spark(
+                app="Iceberg Data Load",
+                iceberg_config=iceberg_conf
+            )
+
+            df = spark.read.parquet(iceberg_s3_config["parquet_folder_path"])
+            load_to_s3_iceberg(df, iceberg_s3_config)
 
     except FileNotFoundError as fe:
         raise Exception("Load file not found") from fe
@@ -91,5 +177,5 @@ def execute_load(config_json):
 
 
 # Path to the JSON load configuration file
-load_json = "Json_Folder/config.json"
-execute_load(load_json)
+config_json = "config/config.json"
+execute_load(config_json)
