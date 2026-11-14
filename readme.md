@@ -1,8 +1,8 @@
-![cover_image](https://github.com/ash-codess/pyspark-etl/blob/master/config/Group%204.png)
+![cover_image](https://github.com/jvijay88/pyspark-etl/blob/master/config/github-cover.png)
 
 ## Overview
 
-- This project is a ETL (Extract, Transform, Load) project that demonstrates the process of extracting data from an employee database using Apache Spark, performing various transformations, and finally loading the processed data into a MySQL database or Snowflake based on config json provided. The entire process is implemented in Python, and JSON is used for configuration to enhance modularity and maintainability.
+- This project is a ETL (Extract, Transform, Load) project that demonstrates the process of extracting data from an employee database using Apache Spark, performing various transformations, and finally loading the processed data into a MySQL database Postgres, Snowflake, AWS S3 and S3 Iceberg based on config json provided. The entire process is implemented in Python, and JSON is used for configuration to enhance modularity and maintainability.
 
 ## Table of Contents
 
@@ -20,8 +20,8 @@
 
 1.  Clone this repository to your local machine:
 
-        git clone https://github.com/your-username/spark-etl-project.git
-        cd spark-etl-project
+        git clone https://github.com/your-username/pyspark-etl.git
+        cd pyspark-etl
 
 2.  Install the required dependencies:
 
@@ -33,13 +33,17 @@
 
 - To run the Spark ETL process, execute the following command in your terminal:
 
-        python Spark_Initializer.py
+        python -m src/ Spark_Initializer.py
 
-        python extract.py
+        python -m src/ extract.py
 
-        python transform.py
+        python -m src/ transform.py
 
-        python load.py
+        python -m src/ load.py
+
+- To run the Spark ETL process, execute the following command in your terminal:
+
+        python -m src/read_data.py
 
 These scripts will use Apache Spark to extract data from the employee database, perform transformations as specified in the configuration, and load the processed data into the MySQL database.
 
@@ -77,6 +81,9 @@ The project implements robust error handling using Spark's fault-tolerant featur
 - MySQL: The final processed data is loaded into a MySQL database.
 - Snowflake : Option to load the final processed data is loaded into a Snowflake.
 - Parquet: The extracted data is saved in Parquet file format, which is optimized for performance and space efficiency.
+- Postgres : Option to load data into postgres
+- S3 Parquet : Option to load final data as parquet file and move to s3 bucket
+- Iceberg : Option to load final data as Iceberg table to s3 bucket
 
 ## Contributing
 
