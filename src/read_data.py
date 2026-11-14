@@ -9,7 +9,7 @@ Execute in Spark Shell :
 
 from pathlib import Path
 from pyspark.sql import DataFrame
-from Spark_Initializer import SparkInitializer
+from src.Spark_Initializer import SparkInitializer
 
 
 def read_file(spark, path, options) -> DataFrame:
@@ -30,7 +30,7 @@ def read_file(spark, path, options) -> DataFrame:
 
 spark = SparkInitializer.get_spark("read_data")
 
-path = r"transform\final.parquet"
+path = r"data\transform\final.parquet"
 options = {"header": "true", "inferSchema": "true"}
 df = read_file(spark, path, options)
 df.printSchema()

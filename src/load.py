@@ -1,6 +1,6 @@
 import os
 import json
-from Spark_Initializer import SparkInitializer
+from src.Spark_Initializer import SparkInitializer
 from pyspark.sql import DataFrame
 from py4j.protocol import Py4JJavaError
 

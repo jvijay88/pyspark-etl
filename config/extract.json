@@ -10,6 +10,6 @@
       "departments",
       "dept_emp"
     ],
-    "parquet_folder_path": "extract"
+    "parquet_folder_path": "data/extract"
   }
   

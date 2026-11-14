@@ -1,7 +1,7 @@
 import json
 from pyspark.sql.utils import ParseException
 from py4j.protocol import Py4JJavaError
-from Spark_Initializer import SparkInitializer
+from src.Spark_Initializer import SparkInitializer
 
 def extract_tables(extract_json):
     try:
