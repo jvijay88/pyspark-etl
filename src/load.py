@@ -109,7 +109,7 @@ def load_to_s3_iceberg(df: DataFrame, config) -> None:
 
     # Write data to Iceberg table in AWS s3
     (df.write.format("iceberg").mode(write_mode).save(table_identifier))
-        
+
     print(f"Successfully loaded data into Iceberg table: {config['table_name']}")
     
 def execute_load(config_json):
@@ -121,7 +121,7 @@ def execute_load(config_json):
         # Read the JSON configuration file
         with open(config_json) as file:
             config = json.load(file)
-
+        print(config)
         # Create a SparkSession
         if target == "s3_iceberg":
             # Get Iceberg Config

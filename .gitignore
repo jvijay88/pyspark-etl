@@ -1,3 +1,6 @@
 mysql-connector-java-8.0.13.jar
 .vscode/
 venv/
+__pycache__/
+*.pyc
+data/transform/

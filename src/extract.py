@@ -61,5 +61,5 @@ def extract_tables(extract_json):
         raise Exception("Invalid JSON extracturation") from je
 
 # Path to the JSON extracturation file
-extract_json = "Json_Folder/extract.json"
+extract_json = "config/extract.json"
 extract_tables(extract_json)
