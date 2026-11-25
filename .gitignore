@@ -3,4 +3,17 @@ mysql-connector-java-8.0.13.jar
 venv/
 __pycache__/
 *.pyc
+data/extract/
 data/transform/
+data/analytics/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+spark-warehouse/
+metastore_db/
+derby.log
+config/secrets.env
+*.env
+!config/secrets.env.example

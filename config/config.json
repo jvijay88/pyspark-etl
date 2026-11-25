@@ -1,46 +1,46 @@
-  {
-    "mysql_config": {
-      "mysql_host": "localhost",
-      "mysql_port": "3306",
-      "driver": "com.mysql.cj.jdbc.Driver",
-      "mysql_database": "final",
-      "mysql_user": "root",
-      "mysql_password": "root",
-      "parquet_folder_path": "data/transform/final.parquet",
-      "target_table": "details"
-    },
-    "postgres_config": {
-      "pg_host": "localhost",
-      "pg_port": "5432",
-      "driver": "org.postgresql.Driver",
-      "pg_database": "etl_db",
-      "pg_user": "postgres",
-      "pg_password": "password",
-      "target_table": "public.employees_target",
-      "parquet_folder_path": "data/transform/final.parquet"
-    },
-    "snowflake_config": {
-      "sf_url": "<account>.snowflakecomputing.com",
-      "sf_user": "<username>",
-      "sf_password": "<password>",
-      "sf_database": "<DB>",
-      "sf_schema": "<SCHEMA>",
-      "sf_warehouse": "<WAREHOUSE>",
-      "parquet_folder_path": "data/transform/final.parquet",
-      "write_mode": "overwrite",
-      "target_table": "details"
-    },
-    "s3_config": {
-      "s3_parquet_path": "s3a://my-s3-bucket/output/employees_parquet/",
-      "parquet_folder_path": "data/transform/final.parquet",
-      "write_mode": "overwrite"
-    },
-    "iceberg_s3_config": {
-      "s3_bucket_name": "my-s3-iceberg-bucket",
-      "catalog_name": "hive_prod",
-      "database_name": "hr_db",
-      "table_name": "employees_iceberg",
-      "parquet_folder_path": "data/transform/final.parquet",
-      "write_mode": "append"
-    }
+{
+  "mysql_config": {
+    "mysql_host": "localhost",
+    "mysql_port": "3306",
+    "driver": "com.mysql.cj.jdbc.Driver",
+    "mysql_database": "final",
+    "mysql_user": "${env:MYSQL_USER}",
+    "mysql_password": "${env:MYSQL_PASSWORD}",
+    "parquet_folder_path": "data/transform/final.parquet",
+    "target_table": "details"
+  },
+  "postgres_config": {
+    "pg_host": "localhost",
+    "pg_port": "5432",
+    "driver": "org.postgresql.Driver",
+    "pg_database": "etl_db",
+    "pg_user": "${env:PG_USER}",
+    "pg_password": "${env:PG_PASSWORD}",
+    "target_table": "public.employees_target",
+    "parquet_folder_path": "data/transform/final.parquet"
+  },
+  "snowflake_config": {
+    "sf_url": "${env:SNOWFLAKE_ACCOUNT}.snowflakecomputing.com",
+    "sf_user": "${env:SNOWFLAKE_USER}",
+    "sf_password": "${env:SNOWFLAKE_PASSWORD}",
+    "sf_database": "<DB>",
+    "sf_schema": "<SCHEMA>",
+    "sf_warehouse": "<WAREHOUSE>",
+    "parquet_folder_path": "data/transform/final.parquet",
+    "write_mode": "overwrite",
+    "target_table": "details"
+  },
+  "s3_config": {
+    "s3_parquet_path": "s3a://my-s3-bucket/output/employees_parquet/",
+    "parquet_folder_path": "data/transform/final.parquet",
+    "write_mode": "overwrite"
+  },
+  "iceberg_s3_config": {
+    "s3_bucket_name": "my-s3-iceberg-bucket",
+    "catalog_name": "hive_prod",
+    "database_name": "hr_db",
+    "table_name": "employees_iceberg",
+    "parquet_folder_path": "data/transform/final.parquet",
+    "write_mode": "append"
   }
+}

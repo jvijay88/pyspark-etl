@@ -1,0 +1,22 @@
+{
+  "job_name": "employee_analytics",
+  "environment": "local",
+  "source": {
+    "path": "data/transform/final.parquet",
+    "format": "parquet"
+  },
+  "write_mode": "overwrite",
+  "aggregations": {
+    "employees_by_gender": {
+      "output_path": "data/analytics/employees_by_gender.parquet"
+    },
+    "employees_by_tenure": {
+      "output_path": "data/analytics/employees_by_tenure.parquet",
+      "order": "desc"
+    },
+    "employees_by_department": {
+      "output_path": "data/analytics/employees_by_department.parquet",
+      "current_to_date": "9999-01-01"
+    }
+  }
+}

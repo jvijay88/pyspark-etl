@@ -1,68 +1,67 @@
+"""
+Module Name: load.py
+Description: Loads the transformed parquet data (data/transform/final.parquet)
+             into the target selected by the LOAD_TARGET environment variable.
+
+Usage:
+    LOAD_TARGET=postgres python -m src.load
+
+Supported LOAD_TARGET values: mysql (default), postgres, snowflake, s3, s3_iceberg
+"""
+
+import logging
 import os
-import json
-from src.Spark_Initializer import SparkInitializer
+
 from pyspark.sql import DataFrame
-from py4j.protocol import Py4JJavaError
+
+from src.config_loader import ALLOW_PLAINTEXT_KEY, load_json_config, resolve_config
+from src.exceptions import (
+    ConfigurationError,
+    LoadError,
+    UnsupportedLoadTargetError,
+    short_error,
+)
+from src.logging_config import configure_logging
+from src.Spark_Initializer import SparkInitializer
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_CONFIG_PATH = "config/config.json"
+DEFAULT_LOAD_TARGET = "mysql"
+SNOWFLAKE_SOURCE_NAME = "net.snowflake.spark.snowflake"
 
 
-def load_data_mysql(df: DataFrame, config) -> None:
-    # Extract extracturation parameters
-    mysql_host = config["mysql_host"]
-    mysql_port = config["mysql_port"]
-    driver = config["driver"]
-    mysql_database = config["mysql_database"]
-    mysql_user = config["mysql_user"]
-    mysql_password = config["mysql_password"]
-    database_table = config["target_table"]
-
-    # JDBC URL for MySQL connection
-    mysql_url = f"jdbc:mysql://{mysql_host}:{mysql_port}/{mysql_database}"
-
-    # Extract load parameters
+def load_data_mysql(df: DataFrame, config: dict) -> None:
+    mysql_url = f"jdbc:mysql://{config['mysql_host']}:{config['mysql_port']}/{config['mysql_database']}"
     jdbc_properties = {
         "url": mysql_url,
-        "driver": driver,
-        "user": mysql_user,
-        "password": mysql_password,
-        "dbtable": database_table,
+        "driver": config["driver"],
+        "user": config["mysql_user"],
+        "password": config["mysql_password"],
+        "dbtable": config["target_table"],
     }
 
-    # Write the data to the target table using JDBC
-    (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+    df.write.format("jdbc").options(**jdbc_properties).mode("append").save()
 
-    print(f"Successfully loaded data into Mysql table: {config['target_table']}")
+    logger.info("Successfully loaded data into MySQL table: %s", config["target_table"])
 
 
-def load_to_postgres(df: DataFrame, config) -> None:
-    # Extract extracturation parameters
-    pg_host = config["pg_host"]
-    pg_port = config["pg_port"]
-    driver = config["driver"]
-    pg_database = config["pg_database"]
-    pg_user = config["pg_user"]
-    pg_password = config["pg_password"]
-    database_table = config["target_table"]
-
-    # JDBC URL for PostGres connection
-    mysql_url = f"jdbc:postgresql://{pg_host}:{pg_port}/{pg_database}"
-
-    # Extract load parameters
+def load_to_postgres(df: DataFrame, config: dict) -> None:
+    pg_url = f"jdbc:postgresql://{config['pg_host']}:{config['pg_port']}/{config['pg_database']}"
     jdbc_properties = {
-        "url": mysql_url,
-        "driver": driver,
-        "user": pg_user,
-        "password": pg_password,
-        "dbtable": database_table,
+        "url": pg_url,
+        "driver": config["driver"],
+        "user": config["pg_user"],
+        "password": config["pg_password"],
+        "dbtable": config["target_table"],
     }
 
-    # Write the data to the target table using JDBC
-    (df.write.format("jdbc").options(**jdbc_properties).mode("append").save())
+    df.write.format("jdbc").options(**jdbc_properties).mode("append").save()
 
-    print(f"Successfully loaded data into Postgres table: {config['target_table']}")
+    logger.info("Successfully loaded data into Postgres table: %s", config["target_table"])
 
 
-def load_to_snowflake(df: DataFrame, config) -> None:
-
+def load_to_snowflake(df: DataFrame, config: dict) -> None:
     sf_options = {
         "sfURL": config["sf_url"],
         "sfUser": config["sf_user"],
@@ -72,112 +71,169 @@ def load_to_snowflake(df: DataFrame, config) -> None:
         "sfWarehouse": config["sf_warehouse"],
     }
 
-    write_mode = config["write_mode"]
-
-    # write data to snowflake
     (
-        df.write.format("net.snowflake.spark.spark.snowflake")
+        df.write.format(SNOWFLAKE_SOURCE_NAME)
         .options(**sf_options)
         .option("dbtable", config["target_table"])
-        .mode(config.get("write_mode", write_mode))
+        .mode(config["write_mode"])
         .save()
     )
 
-    print(f"Successfully loaded data into Snowflake table: {config['target_table']}")
+    logger.info("Successfully loaded data into Snowflake table: %s", config["target_table"])
 
 
-def load_to_s3(df: DataFrame, config) -> None:
-
+def load_to_s3(df: DataFrame, config: dict) -> None:
     s3_path = config["s3_parquet_path"]
-    write_mode = config["write_mode"]
 
-    # write data to AWS s3
-    (df.write.mode(write_mode).parquet(s3_path))
+    df.write.mode(config["write_mode"]).parquet(s3_path)
 
-    print(f"Successfully loaded data into S3: {s3_path}")
+    logger.info("Successfully loaded data into S3: %s", s3_path)
 
 
-def load_to_s3_iceberg(df: DataFrame, config) -> None:
+def load_to_s3_iceberg(df: DataFrame, config: dict) -> None:
+    table_identifier = f"{config['catalog_name']}.{config['database_name']}.{config['table_name']}"
 
-    catalog_name = config["catalog_name"]
-    database_name = config["database_name"]
-    table_name = config["table_name"]
-    write_mode = config["write_mode"]
+    df.write.format("iceberg").mode(config["write_mode"]).save(table_identifier)
 
-    # Iceberg Table identifier
-    table_identifier = f"{catalog_name}.{database_name}.{table_name}"
+    logger.info("Successfully loaded data into Iceberg table: %s", table_identifier)
 
-    # Write data to Iceberg table in AWS s3
-    (df.write.format("iceberg").mode(write_mode).save(table_identifier))
 
-    print(f"Successfully loaded data into Iceberg table: {config['table_name']}")
-    
-def execute_load(config_json):
+# target name -> (config section, loader function, keys the loader needs)
+LOAD_TARGETS = {
+    "mysql": (
+        "mysql_config",
+        load_data_mysql,
+        (
+            "mysql_host",
+            "mysql_port",
+            "driver",
+            "mysql_database",
+            "mysql_user",
+            "mysql_password",
+            "target_table",
+            "parquet_folder_path",
+        ),
+    ),
+    "postgres": (
+        "postgres_config",
+        load_to_postgres,
+        (
+            "pg_host",
+            "pg_port",
+            "driver",
+            "pg_database",
+            "pg_user",
+            "pg_password",
+            "target_table",
+            "parquet_folder_path",
+        ),
+    ),
+    "snowflake": (
+        "snowflake_config",
+        load_to_snowflake,
+        (
+            "sf_url",
+            "sf_user",
+            "sf_password",
+            "sf_database",
+            "sf_schema",
+            "sf_warehouse",
+            "target_table",
+            "write_mode",
+            "parquet_folder_path",
+        ),
+    ),
+    "s3": (
+        "s3_config",
+        load_to_s3,
+        ("s3_parquet_path", "write_mode", "parquet_folder_path"),
+    ),
+    "s3_iceberg": (
+        "iceberg_s3_config",
+        load_to_s3_iceberg,
+        (
+            "s3_bucket_name",
+            "catalog_name",
+            "database_name",
+            "table_name",
+            "write_mode",
+            "parquet_folder_path",
+        ),
+    ),
+}
 
-    target = os.getenv("LOAD_TARGET", "mysql").lower()
+
+def resolve_load_target() -> str:
+    """Read LOAD_TARGET (default 'mysql') and make sure it is supported."""
+    raw_target = os.getenv("LOAD_TARGET", DEFAULT_LOAD_TARGET)
+    target = raw_target.strip().lower()
+
+    if target not in LOAD_TARGETS:
+        supported = ", ".join(sorted(LOAD_TARGETS))
+        print(f"LOAD_TARGET: {raw_target!r}")
+        logger.error("LOAD_TARGET %r is not available. Supported targets: %s.", raw_target, supported)
+        raise UnsupportedLoadTargetError(
+            f"execute_load: LOAD_TARGET {raw_target!r} is not available. "
+            f"Set LOAD_TARGET to one of: {supported}."
+        )
+    return target
+
+
+def read_load_config(config_json: str, target: str) -> dict:
+    """Read the config file and return the validated, secret-resolved section for ``target``.
+
+    Only the selected section is resolved, so credentials of other targets do
+    not need to be available.
+    """
+    config = load_json_config(config_json, "execute_load")
+
+    section, _, required_keys = LOAD_TARGETS[target]
+    if section not in config:
+        raise ConfigurationError(
+            f"execute_load: section '{section}' required for LOAD_TARGET '{target}' "
+            f"is missing from '{config_json}'."
+        )
+
+    missing = [key for key in required_keys if key not in config[section]]
+    if missing:
+        raise ConfigurationError(
+            f"execute_load: section '{section}' in '{config_json}' is missing "
+            f"required key(s): {', '.join(missing)}."
+        )
+    return resolve_config(
+        config[section],
+        source=f"execute_load: '{config_json}' section '{section}'",
+        allow_plaintext=config.get(ALLOW_PLAINTEXT_KEY, False) is True,
+    )
+
+
+def execute_load(config_json: str = DEFAULT_CONFIG_PATH) -> None:
+    # Validate target and config before starting Spark (fail fast).
+    target = resolve_load_target()
+    target_config = read_load_config(config_json, target)
+    _, loader, _ = LOAD_TARGETS[target]
+
+    if target == "s3_iceberg":
+        iceberg_conf = SparkInitializer.get_iceberg_config(
+            catalog_name=target_config["catalog_name"],
+            s3_bucket=target_config["s3_bucket_name"],
+        )
+        spark = SparkInitializer.get_spark(app="Iceberg Data Load", iceberg_config=iceberg_conf)
+    else:
+        spark = SparkInitializer.get_spark()
+
+    source_path = target_config["parquet_folder_path"]
+    logger.info("Loading '%s' into target '%s'.", source_path, target)
 
     try:
-
-        # Read the JSON configuration file
-        with open(config_json) as file:
-            config = json.load(file)
-        
-        # Create a SparkSession
-        if target == "s3_iceberg":
-            # Get Iceberg Config
-            iceberg_s3_config = config["iceberg_s3_config"]
-            iceberg_conf = SparkInitializer.get_iceberg_config(
-                catalog_name=iceberg_s3_config["catalog_name"],
-                s3_bucket=iceberg_s3_config["s3_bucket_name"],
-            )
-
-            # Initialize spark with Iceberg configruation
-            spark = SparkInitializer.get_spark(
-                app="Iceberg Data Load", iceberg_config=iceberg_conf
-            )
-
-        else:
-            spark = SparkInitializer.get_spark()
-
-        # Load execution flow based on input conditions
-        if target == "mysql":
-
-            db_config = config["mysql_config"]
-            df = spark.read.parquet(db_config["parquet_folder_path"])
-            load_data_mysql(df, db_config)
-
-        elif target == "postgres":
-
-            db_config = config["postgres_config"]
-            df = spark.read.parquet(db_config["parquet_folder_path"])
-            load_to_postgres(df, db_config)
-
-        elif target == "snowflake":
-
-            sf_config = config["snowflake_config"]
-            df = spark.read.parquet(sf_config["parquet_folder_path"])
-            load_to_snowflake(df, sf_config)
-
-        elif target == "s3":
-
-            s3_config = config["s3_config"]
-            df = spark.read.parquet(s3_config["parquet_folder_path"])
-            load_to_s3(df, s3_config)
-
-        elif target == "s3_iceberg":
-
-            iceberg_s3_config = config["iceberg_s3_config"]
-            df = spark.read.parquet(iceberg_s3_config["parquet_folder_path"])
-            load_to_s3_iceberg(df, iceberg_s3_config)
-
-    except FileNotFoundError as fe:
-        raise Exception("Load file not found") from fe
-    except json.JSONDecodeError as je:
-        raise Exception("Invalid JSON load configuration") from je
-    except Py4JJavaError as pje:
-        raise Exception("Py4J Java error occurred") from pje
+        df = spark.read.parquet(source_path)
+        loader(df, target_config)
+    except Exception as err:
+        raise LoadError(
+            f"execute_load: failed to load '{source_path}' into target '{target}': {short_error(err)}"
+        ) from err
 
 
-# Path to the JSON load configuration file
-config_json = "config/config.json"
-execute_load(config_json)
+if __name__ == "__main__":
+    configure_logging()
+    execute_load(DEFAULT_CONFIG_PATH)

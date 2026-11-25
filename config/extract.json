@@ -1,15 +1,14 @@
 {
-    "mysql_host": "localhost",
-    "mysql_port": "3306",
-    "driver":"com.mysql.cj.jdbc.Driver",
-    "mysql_database": "employees",
-    "mysql_user":"root",
-    "mysql_password":"root",
-    "table_names": [
-      "employees",
-      "departments",
-      "dept_emp"
-    ],
-    "parquet_folder_path": "data/extract"
-  }
-  
+  "mysql_host": "localhost",
+  "mysql_port": "3306",
+  "driver": "com.mysql.cj.jdbc.Driver",
+  "mysql_database": "employees",
+  "mysql_user": "${env:MYSQL_USER}",
+  "mysql_password": "${env:MYSQL_PASSWORD}",
+  "table_names": [
+    "employees",
+    "departments",
+    "dept_emp"
+  ],
+  "parquet_folder_path": "data/extract"
+}

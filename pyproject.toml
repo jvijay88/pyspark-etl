@@ -1,0 +1,30 @@
+[tool.ruff]
+line-length = 110
+target-version = "py38"
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, import sorting, bugbear, naming
+select = ["E", "W", "F", "I", "B", "N"]
+# N999: the module name Spark_Initializer.py is kept for backwards compatibility.
+ignore = ["N999", "N812"]  # N812: `functions as F` is the PySpark convention
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "utils", "tests"]
+
+[tool.coverage.run]
+source = ["src", "utils"]
+# Connectivity / external-system modules are out of scope for unit tests
+# (MySQL, Postgres, Snowflake, S3, Iceberg catalog, SparkSession creation).
+omit = ["src/extract.py", "src/load.py", "src/Spark_Initializer.py"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = ['if __name__ == "__main__":']
+
+[tool.pytest.ini_options]
+# Run from the project root:  python -m pytest
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["spark: test needs a live local SparkSession (JVM)."]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
